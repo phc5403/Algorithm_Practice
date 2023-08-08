@@ -40,7 +40,7 @@ public class Solution { // SWEA_9229
 				else { // sum <= K일 때, res 갱신
 					// END_1 : 현재 최대 합으로 res 갱신
 					// END_2 : sum이 K보단 부족하지만, 최대 합일 경우 존재.
-					if (res < sum) res = snack[left] + snack[right];
+					if (res < sum) res = sum;
 					left++; // sum < K일 때, 범위 갱신
 				}
 			}
