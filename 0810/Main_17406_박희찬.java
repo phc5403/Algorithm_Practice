@@ -4,7 +4,10 @@ import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.StringTokenizer;
 
-
+/*
+ * 230813 : 최종 출력 값, 회전 중간 결과 값이 모두 맞게 나오는데, 제출만하면 1%에서 "틀렸습니다"가 나옴.
+ * 아직 원인을 찾지 못함.
+ */
 public class Main { // 17406
 	static StringTokenizer st;
 	static StringBuilder sb;
