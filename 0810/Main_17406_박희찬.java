@@ -4,23 +4,20 @@ import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.StringTokenizer;
 
-/*
- * 230813 : 최종 출력 값, 회전 중간 결과 값이 모두 맞게 나오는데, 제출만하면 1%에서 "틀렸습니다"가 나옴.
- * 아직 원인을 찾지 못함.
- */
 public class Main { // 17406
 	static StringTokenizer st;
 	static StringBuilder sb;
-	static int N, M, K;  // 원본배열 행, 열 / 회전 연산의 개수
-	static int r, c, s;  // 회전 연산의 세 정수
-	static int nN, mM;  // 연산에 의해 돌려야할 행, 열
-	static int[][] lst;  // 원본 배열
-	static int[][] copyLst;  // 연산을 위해 원본을 복사한 배열
+	static int N, M, K; // 원본배열 행, 열 / 회전 연산의 개수
+	static int r, c, s; // 회전 연산의 세 정수
+	static int nN, mM; // 연산에 의해 돌려야할 행, 열
+	static int[][] lst; // 원본 배열
+	static int[][] copyLst; // 연산을 위해 원본을 복사한 배열
 	static int[][] operation; // 회전 연산을 저장할 배열
-	static boolean[][] visited;  // 배열 bfs()회전시 방문 체크용
-	static int[] isSelected;  // 조합 : 회전 연산 방문 체크용
-	static int range;  // 한 번 회전시 내부 사각형까지 돌려야 하는 횟수
-	static int startX, startY;  // 회전 연산에 의해 돌려야할 출발점 좌표
+	static boolean[][] visited; // 배열 bfs()회전시 방문 체크용
+	static boolean[] isSelected; // 순열 : 회전 연산 방문 체크용
+	static int[] number; // 순열 : 회전 연산 순서 체크용
+	static int range; // 한 번 회전시 내부 사각형까지 돌려야 하는 횟수
+	static int startX, startY; // 회전 연산에 의해 돌려야할 출발점 좌표
 	static int res; // 최종 Answer
 
 	// 하우상좌(시계 방향)
@@ -31,13 +28,12 @@ public class Main { // 17406
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 		sb = new StringBuilder();
 		res = Integer.MAX_VALUE;
-		
+
 		st = new StringTokenizer(br.readLine());
 		N = Integer.parseInt(st.nextToken());
 		M = Integer.parseInt(st.nextToken());
 		K = Integer.parseInt(st.nextToken());
 
-		
 		// 원본 배열 할당
 		lst = new int[N][M];
 		for (int i = 0; i < N; i++) {
@@ -48,7 +44,7 @@ public class Main { // 17406
 		}
 
 		// 회전 연산 정보 할당
-		operation = new int[K][K];
+		operation = new int[K][3];
 		for (int i = 0; i < K; i++) {
 			st = new StringTokenizer(br.readLine());
 			r = Integer.parseInt(st.nextToken());
@@ -56,15 +52,16 @@ public class Main { // 17406
 			s = Integer.parseInt(st.nextToken());
 			operation[i] = new int[] { r, c, s };
 		}
-
-		/**
-		 * comb() -> deepCopy() -> rotate() -> arrayMin() 순으로 동작
-		 * 회전 연산 순서 정하기 -> 원본 배열을 복사 ->
-		 * 복사본으로 배열 회전 -> 회전이 끝난 후 배열의 최솟값 찾기 & 갱신.
-		 */
-		isSelected = new int[K];
-		comb(1, isSelected);
 		
+		/**
+		 * comb() -> deepCopy() -> rotate() -> arrayMin() 순으로 동작 회전 연산 순서 정하기 -> 원본 배열을
+		 * 복사 -> 복사본으로 배열 회전 -> 회전이 끝난 후 배열의 최솟값 찾기 & 갱신.
+		 */
+		isSelected = new boolean[K];  // 순열 : 방문 체크용
+		number = new int[K];  // 순열 : 숫자 저장용
+
+		perm(0, isSelected);
+
 		// 최종 출력
 		sb.append(res);
 		System.out.println(sb);
@@ -72,50 +69,53 @@ public class Main { // 17406
 	} // Main
 
 	/**
-	 * 조합 : 회전 연산을 어떤 순서로 돌릴지 정하는 함수
-	 * @param cnt : 현재 선택된 숫자 개수
+	 * 순열 : 회전 연산을 어떤 순서로 돌릴지 정하는 함수
+	 * 
+	 * @param cnt        : 현재 선택된 숫자 개수
 	 * @param isSelected : 방문 체크용
 	 */
-	private static void comb(int cnt, int[] isSelected) {
-		if (cnt == K) {
-			// 1. 조합으로 순서가 정해지면, 작업을 위한 원본 배열 복사
+	private static void perm(int cnt, boolean[] isSelected) {
+		if (cnt == K) {  // 순열 : 기저 조건
+			// 1. 순열으로 순서가 정해지면, 작업을 위한 원본 배열 복사
 			copyLst = new int[N][M];
 			deepCopy();
-			
+
 			// 2. 정해진 순서에 의해 수행할 회전 연산 정보 설정
-			for (int num : isSelected) {  // [0, 1], [1, 0]
-				r = operation[num][0];  
-				c = operation[num][1];
-				s = operation[num][2];
-				
+			for (int num = 0; num < K; num++) { // [0, 1], [1, 0]
+				r = operation[number[num]][0];
+				c = operation[number[num]][1];
+				s = operation[number[num]][2];
+
 				// 새로 돌려야할 배열의 행, 열
-				nN = Math.abs((r - s - 1) - (r + s - 1)) + 1; 
-				mM = Math.abs((c - s - 1) - (c + s - 1)) + 1; 
+				nN = Math.abs((r - s - 1) - (r + s - 1)) + 1;
+				mM = Math.abs((c - s - 1) - (c + s - 1)) + 1;
 
 				// 한 번 회전시 내부 사각형까지 돌려야 하는 횟수
 				range = Math.min(nN, mM) / 2; // 2
 				visited = new boolean[N][M];
-				
+
 				// 3. 주어진 회전 연산 정보로 배열 돌리기
 				for (int i = 0; i < range; i++) {
 					startX = r - s - 1 + i;
 					startY = c - s - 1 + i;
 					rotate(startX, startY);
-				}  // for : 1번의 회전연산을 마침.
-			}  // foreach
-			
+				} // for : 1번의 회전연산을 마침.
+			} // for
+
 			// 4. 1개의 순서로 회전 연산이 모두 끝난 후, 배열의 최솟값 구하기.
-			arrayMin(copyLst); 
+			arrayMin(copyLst);
 			return;
 		}
 
+		// 순열 : 유도 부분
 		for (int i = 0; i < K; i++) {
-			if (isSelected[i] == 1) {
+			if (isSelected[i] == true) {
 				continue;
 			}
-			isSelected[i] = 1;
-			comb(cnt + 1, isSelected);
-			isSelected[i] = 0;
+			isSelected[i] = true;
+			number[cnt] = i;
+			perm(cnt + 1, isSelected);
+			isSelected[i] = false;
 		}
 	}
 
@@ -134,11 +134,12 @@ public class Main { // 17406
 
 	/**
 	 * 배열을 돌리는 함수
+	 * 
 	 * @param x : 새로 돌려야 할 배열의 시작 X 좌표
 	 * @param y : 새로 돌려야 할 배열의 시작 Y 좌표
 	 */
 	private static void rotate(int x, int y) {
-		int start = copyLst[x][y];  // 최초 출발점 기억
+		int start = copyLst[x][y]; // 최초 출발점 기억
 		int nx, ny;
 		int direc = 0; // 방향 변수
 
@@ -162,7 +163,7 @@ public class Main { // 17406
 					break;
 				}
 
-			} else {  // 각 방향 끝까지 간 이후 다음 방향으로 전환.
+			} else { // 각 방향 끝까지 간 이후 다음 방향으로 전환.
 				direc = (direc + 1) % 4;
 			}
 		} // while
@@ -170,6 +171,7 @@ public class Main { // 17406
 
 	/**
 	 * 배열의 최솟값을 구하는 함수
+	 * 
 	 * @param arr : 배열의 값을 구할 복사된 배열
 	 */
 	private static void arrayMin(int[][] arr) {
