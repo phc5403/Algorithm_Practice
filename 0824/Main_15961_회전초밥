@@ -1,0 +1,95 @@
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.*;
+
+// 0824(목) -> TestCase는 맞지만, 최종적으로 WA 상태.
+public class Main { // 15961_회전 초밥
+	static StringTokenizer st;
+	static StringBuilder sb = new StringBuilder();
+	static int N, D, K, CHANCE;
+	static int res = Integer.MIN_VALUE; // 먹을 수 있는 초밥의 가짓수의 최댓값
+	static int[] lst;
+	static int len;
+
+	public static void main(String[] args) throws IOException {
+		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+		
+		st = new StringTokenizer(br.readLine());
+		N = Integer.parseInt(st.nextToken());
+		D = Integer.parseInt(st.nextToken());  // 초밥은 2부터 시작 ~ 3천까지
+		K = Integer.parseInt(st.nextToken());  // 범위도 2부터 시작 ~ 3천까지
+		CHANCE = Integer.parseInt(st.nextToken());
+		
+		
+//		len = N + K;  // 기존 길이 + 0부터 K번째까지 길이
+		lst = new int[N];
+		for (int i = 0; i < N; i++) {
+			st = new StringTokenizer(br.readLine());
+			lst[i] = Integer.parseInt(st.nextToken());
+		}
+		
+		// 앞쪽부터 K번째까지 뒤에 붙임
+//		System.arraycopy(lst, 0, lst, N, K);
+		
+		slidingWindow();
+		
+		sb = new StringBuilder();
+		sb.append(res);
+		System.out.println(sb);
+
+	} // Main
+
+	static void slidingWindow() {
+		Deque<Integer> qu = new ArrayDeque<>();
+		
+		// 초밥의 가짓수 만큼 배열 생성
+		int[] visited = new int[D + 1];
+		int cnt = 0;  // 먹을 수 있는 초밥 가짓수
+		
+		// 1. 처음부터 K번째 까지의 초밥을 QU에 넣음
+		for (int i = 0; i < K; i++) {
+			qu.offer(lst[i]);
+		}
+	
+		// 1-2. 현재 QU를 돌면서 방문 체크 + 개수 추가
+		for (int cur : qu) {
+			visited[cur]++;
+			cnt++;
+		}
+		
+		// 1-3. 최초 경우의 수에서 최댓값 갱신
+		res = Math.max(res, cnt);
+
+		// 2. K번째부터 초밥 벨트의 모든 조합까지 순회
+		for (int nxt = K; nxt < N; nxt++) {
+			// 2-1. 가장 앞 쪽의 초밥을 뺌
+			int prev = qu.poll();
+			
+			// 없어진 초밥의 먹은 횟수를 차감하고
+			if (--visited[prev] == 0) {
+				cnt--;  // 0이 되었다면 총 가짓수 차감
+			}
+			
+			// 2-2. 다음 뒤의 초밥을 추가
+			qu.offer(lst[nxt]);
+			
+			// 아직 먹지 않았다면 먹은 수, 총 가짓수 증감
+			if (visited[lst[nxt]] == 0) {
+				visited[lst[nxt]]++;
+				cnt++;
+			}
+			
+			// 초밥 접시 한 사이클을 돌 때마다 최댓값 확인
+			// 3. 쿠폰의 초밥을 먹지 않았다면
+			if (visited[CHANCE] == 0) {
+				res = Math.max(res, cnt + 1);  // 먹은 후의 최댓값 갱신
+			} else {
+				res = Math.max(res, cnt);  // 기존 횟수로 최댓값 갱신
+			}
+			
+		} // for
+	}
+	
+	
+}
