@@ -28,9 +28,6 @@ public class Main { // 15961_회전 초밥
 			lst[i] = Integer.parseInt(st.nextToken());
 		}
 		
-		// 앞쪽부터 K번째까지 뒤에 붙임
-		// 회전 초밥이므로 시작 ~ 끝
-		
 		/*
 		 * 앞쪽부터 K번째까지 뒤에 붙임
 		 * 회전 초밥이므로 시작 ~ 끝인 1 Cycle과,
