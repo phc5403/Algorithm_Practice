@@ -3,7 +3,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
 
-// 0824(목) -> TestCase는 맞지만, 최종적으로 WA 상태.
 public class Main { // 15961_회전 초밥
 	static StringTokenizer st;
 	static StringBuilder sb = new StringBuilder();
@@ -22,15 +21,22 @@ public class Main { // 15961_회전 초밥
 		CHANCE = Integer.parseInt(st.nextToken());
 		
 		
-//		len = N + K;  // 기존 길이 + 0부터 K번째까지 길이
-		lst = new int[N];
+		len = N + K;  // 기존 길이 + 0부터 K번째까지 길이
+		lst = new int[len];
 		for (int i = 0; i < N; i++) {
 			st = new StringTokenizer(br.readLine());
 			lst[i] = Integer.parseInt(st.nextToken());
 		}
 		
 		// 앞쪽부터 K번째까지 뒤에 붙임
-//		System.arraycopy(lst, 0, lst, N, K);
+		// 회전 초밥이므로 시작 ~ 끝
+		
+		/*
+		 * 앞쪽부터 K번째까지 뒤에 붙임
+		 * 회전 초밥이므로 시작 ~ 끝인 1 Cycle과,
+		 * (끝 - K) ~ 끝 부터 K번째를 더 봐야함.
+		 */
+		System.arraycopy(lst, 0, lst, N, K);
 		
 		slidingWindow();
 		
@@ -54,15 +60,17 @@ public class Main { // 15961_회전 초밥
 	
 		// 1-2. 현재 QU를 돌면서 방문 체크 + 개수 추가
 		for (int cur : qu) {
+			if (visited[cur] == 0) {
+				cnt++;  // 처음 먹을 때만 개수 증가
+			}
 			visited[cur]++;
-			cnt++;
 		}
 		
 		// 1-3. 최초 경우의 수에서 최댓값 갱신
 		res = Math.max(res, cnt);
 
 		// 2. K번째부터 초밥 벨트의 모든 조합까지 순회
-		for (int nxt = K; nxt < N; nxt++) {
+		for (int idx = K; idx < len; idx++) {
 			// 2-1. 가장 앞 쪽의 초밥을 뺌
 			int prev = qu.poll();
 			
@@ -72,12 +80,16 @@ public class Main { // 15961_회전 초밥
 			}
 			
 			// 2-2. 다음 뒤의 초밥을 추가
-			qu.offer(lst[nxt]);
+			int nxt = lst[idx];
+			qu.offer(nxt);
 			
-			// 아직 먹지 않았다면 먹은 수, 총 가짓수 증감
-			if (visited[lst[nxt]] == 0) {
-				visited[lst[nxt]]++;
+			
+			// 처음 먹을 때만 cnt 증가
+			if (visited[nxt] == 0) {  
+				visited[nxt]++;
 				cnt++;
+			} else if (visited[lst[idx]] > 0) {  // 이미 먹은 초밥이면 개수 체크만.
+				visited[nxt]++;
 			}
 			
 			// 초밥 접시 한 사이클을 돌 때마다 최댓값 확인
