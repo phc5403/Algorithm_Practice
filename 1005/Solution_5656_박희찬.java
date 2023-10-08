@@ -1,122 +1,118 @@
-""" SWEA_5656_벽돌깨기"""
-from collections import deque
-import time
+""" SWEA_5656 벽돌 깨기 """
+from pprint import pprint
 import copy
+from collections import deque
 
-## 현재 TestCase 47 / 50으로 WA, 반례 찾는 중...
 
-
-# 벽돌을 N번 떨어뜨릴 위치의 경우의 수를 중복 순열로 계산
+# 중복 순열을 통해 벽돌을 떨어뜨릴 위치 선정
 def perm(cnt):
     if cnt == N:
-        # 떨어뜨릴 위치와 순서를 담은 리스트를 BFS()로 보냄.
+        # 각 라운드마다 독립적인 상황이므로, 맵을 깊은 복사로 전달
         lst = copy.deepcopy(arr)
         bfs(lst, order)
         return
 
     for i in range(COL):
-        order[cnt] = num[i]
+        order[cnt] = number[i]
         perm(cnt + 1)
 
 
-# BFS : 구슬을 쏘아 처음 만나는 벽돌을 찾음
-def bfs(lst, orderList):
+def bfs(lst, order):
     global res
     qu = deque()
 
-    # 쏘는 위치 & 순서를 큐에 넣음
-    for y in range(N):
-        qu.append([0, orderList[y]])
+    for c in range(N):
+        # Pruning : 최대한 많은 벽돌을 깨야하기 때문에,
+        # 낙하할 곳에 벽돌이 없다면 해당 라운드는 진행 할 필요 X
+        if not isBrick(lst, order[c]):
+            return
+        else:  # 낙하할 좌표를 큐에 넣음
+            qu.append([0, order[c]])
 
     while qu:
         x, y = qu.popleft()
 
         nx = x
-        while nx + 1 < ROW:
+        while nx < ROW:
+            if lst[nx][y]:
+                # 낙하하면서 처음 닿는 벽돌 찾음.
+                artIsExplosion(lst, nx, y)
+                break
             nx += 1
 
-            # 가장 처음 만나는 벽돌의 위치를 찾음
-            if lst[nx][y] > 0:
-                bomb(lst, nx, y)
-                break
-
-    # 남은 벽돌의 개수를 계산
+    # END : 모든 구슬을 던진 후, 남아있는 벽돌 계산
     brick = 0
     for r in range(ROW):
         for c in range(COL):
             if lst[r][c]:
                 brick += 1
 
-    # 최소 개수 갱신
+    # 남은 벽돌의 최솟값 갱신
     res = min(res, brick)
 
 
-# 벽돌의 폭발
-def bomb(lst, x1, y1):
+# "예술은 폭발이다."
+def artIsExplosion(lst, x, y):
     bu = deque()
-    bu.append([x1, y1])
+    bu.append([x, y])
 
+    # 낙하 후 폭발 범위 계산
     while bu:
         x, y = bu.popleft()
+        chain = lst[x][y]  # 폭발 범위
 
-        if lst[x][y] >= 2:
-            # 벽돌이 폭발할 범위
-            chain = lst[x][y]
+        # 상하좌우로 (벽돌의 번호 - 1)만큼 연쇄 폭발
+        for idx in range(-chain + 1, chain):
+            # +0은 자신이므로 제외
+            if idx == 0:
+                continue
+            if 0 <= x + idx < ROW:  # 행간 연쇄 폭발
+                bu.append([x + idx, y])
+            if 0 <= y + idx < COL:  # 열간 연쇄 폭발
+                bu.append([x, y + idx])
+        lst[x][y] = 0  # 폭발 된 벽돌 번호 = 0
 
-            # 상하좌우로 퍼질 범위 계산
-            for idx in range(-chain + 1, chain):
-                # 터지는 위치는 다음 큐에 넣을 필요 없음.
-                if idx == 0:
-                    continue
-
-                # 수직, 수평 = 상하좌우로 터질 벽돌을 다음 큐에 넣음.
-                if 0 <= x + idx < ROW:
-                    bu.append([x + idx, y])
-                if 0 <= y + idx < COL:
-                    bu.append([x, y + idx])
-
-        # 1. 위의 if를 거치지 않는 벽돌의 숫자 1은 0으로 소멸하고,
-        # 2. if를 거친 벽돌 본인도 소멸하게 됨.
-        lst[x][y] = 0
-
-    # 벽돌의 낙하 계산
+    # 폭발이 끝난 후 남은 벽돌 중력 낙하
     for col in range(COL):
-        gravity = deque()
+        gu = deque()  # gravity_Queue
         for row in range(ROW):
-            # [0][0]부터 세로로 계산하기 위해 큐에 넣음
-            if lst[row][col]:
-                gravity.append([row, col])
+            if lst[row][col]:  # 남은 벽돌의 번호를 큐에 넣음
+                gu.append(lst[row][col])
+                lst[row][col] = 0
 
-        while gravity:
-            r, c = gravity.pop()
+        # 행의 역순으로 남은 벽돌을 꺼내서 배치
+        for newRow in range(ROW - 1, -1, -1):
+            if gu:
+                lst[newRow][col] = gu.pop()
+            else:
+                break
+    return
 
-            # 자신의 아래 위치의 값이 0인 곳 까지 떨어짐
-            nr = r
-            while nr + 1 < ROW:
-                nr += 1
-                if lst[nr][c] == 0:
-                    lst[nr][c] = lst[r][c]
-                    lst[r][c] = 0
-                    r = nr
+
+# 낙하 할 곳에 벽돌이 있는지 체크
+def isBrick(lst, c):
+    check = False
+    for r in range(ROW):
+        if lst[r][c]:
+            check = True
+    return check
 
 
 """ Main """
-TC = int(input().strip())
-
+TC = int(input())
 for tc in range(1, TC + 1):
-    N, COL, ROW = map(int, input().strip().split())
+    N, COL, ROW = map(int, input().split())
 
     arr = [list(map(int, input().split())) for _ in range(ROW)]
+    dx = [-1, 1, 0, 0]
+    dy = [0, 0, -1, 1]
 
-    num = [number for number in range(COL)]
-    order = [-1] * (N + 1)
+    res = float('inf')  # 결괏값
 
-    dx, dy = [-1, 1, 0, 0], [0, 0, -1, 1]
-
-    # 남은 벽돌 개수의 최댓값
-    res = float('inf')
+    # 중복 순열을 찾기 위한 리스트
+    number = [num for num in range(COL)]
+    order = [0] * N
 
     perm(0)
 
     print(f'#{tc} {res}')
-    # print(eee - sss)
